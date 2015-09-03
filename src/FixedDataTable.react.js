@@ -130,7 +130,7 @@ var FixedDataTable = React.createClass({
     /**
      * Event to fire when the selected rows changed
      */
-    onSelectionChanged: PropTypes.object,    
+    onSelectionChanged: PropTypes.func,    
 
     /**
      * Pixel width of table. If all columns do not fit,
@@ -361,7 +361,7 @@ var FixedDataTable = React.createClass({
       this._rowToScrollTo = scrollToRow;
     }
     var scrollTop = this.props.scrollTop;
-    if (scrollTop !== undefined && scrollTop !== null) {
+    if (scrollTop !== undefined && scrollTop !== null && this.props.rowCount > 0) {
       this._positionToScrollTo = scrollTop;
     }
     var scrollToColumn = this.props.scrollToColumn;
@@ -838,6 +838,16 @@ var FixedDataTable = React.createClass({
       newSelectedRows = [currentRow];
     }
     var selectedRows = selectedRows.concat(newSelectedRows)
+    
+    if (this.props.onSelectionChanged && !_.equals(oldSelectedRows, selectedRows)) {
+      this.props.onSelectionChanged(currentRow, selectedRows);
+    }
+        
+    if (this.props.onRowClick) {
+      this.props.onRowClick(event, index, data);
+    }    
+    
+    
     this.setState({ 
       currentRow: currentRow, 
       selectedRows: selectedRows,
@@ -845,13 +855,7 @@ var FixedDataTable = React.createClass({
       keyboardUsed: false
     });
     
-    if (this.props.onSelectionChanged && !_.equals(oldSelectedRows, selectedRows)) {
-      this.props.onSelectionChanged(selectedRows);
-    }
-        
-    if (this.props.onRowClick) {
-      this.props.onRowClick(event, index, data);
-    }
+
     
     
   },
@@ -930,6 +934,9 @@ var FixedDataTable = React.createClass({
     selectedRows = selectedRows.concat(newSelectedRows);
     
     if (keyboardUsed) {
+      if (this.props.onSelectionChanged && !_.equals(oldSelectedRows, selectedRows)) {
+          this.props.onSelectionChanged(currentRow, selectedRows);
+      }
       this.setState({
           firstRowIndex: scroll.index,
           firstRowOffset: scroll.offset,
@@ -939,10 +946,7 @@ var FixedDataTable = React.createClass({
           keyboardUsed: true,
           currentRow: currentRow,
           selectedRows: selectedRows
-      });      
-      if (this.props.onSelectionChanged && !_.equals(oldSelectedRows, selectedRows)) {
-          this.props.onSelectionChanged(currentRow, selectedRows);
-      }
+      });       
     }
 
     
@@ -985,7 +989,7 @@ var FixedDataTable = React.createClass({
     var selectedRows = (oldState && oldState.selectedRows) || [0];
     var keyboardUsed = (oldState && oldState.keyboardUsed) || false;
     var mouseUsed = (oldState && oldState.mouseUsed) || false;
-    if (this._positionToScrollTo !== undefined) {
+    if (this._positionToScrollTo !== undefined && props.rowsCount > 0) {
       scrollState = this._scrollHelper.scrollTo(this._positionToScrollTo);
       firstRowIndex = scrollState.index;
       firstRowOffset = scrollState.offset;
