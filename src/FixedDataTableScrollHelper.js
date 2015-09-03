@@ -48,6 +48,7 @@ class FixedDataTableScrollHelper {
     this.scrollBy = this.scrollBy.bind(this);
     this.scrollTo = this.scrollTo.bind(this);
     this.scrollToRow = this.scrollToRow.bind(this);
+    this.scrollPages = this.scrollPages.bind(this);
     this.setRowHeightGetter = this.setRowHeightGetter.bind(this);
     this.getContentHeight = this.getContentHeight.bind(this);
     this.getRowPosition = this.getRowPosition.bind(this);
@@ -103,6 +104,12 @@ class FixedDataTableScrollHelper {
     }
     return 0;
   }
+  
+  scrollPages(pages) {
+    var distance = pages * this._viewportHeight;
+    return this.scrollBy(distance);
+  }
+  
 
   getRowPosition(/*number*/ rowIndex) /*number*/ {
     this._updateRowHeight(rowIndex);

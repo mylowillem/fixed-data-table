@@ -93,6 +93,12 @@ module.exports = {
   },
 
   externals: {
+    lodash: {
+      root: 'Lodash',
+      commonjs: 'lodash',
+      commonjs2: 'lodash',
+      amd: 'lodash'
+    },
     react: {
       root: 'React',
       commonjs: 'react',

@@ -54,6 +54,16 @@ var FixedDataTableRowImpl = React.createClass({
      * The row index.
      */
     index: PropTypes.number.isRequired,
+    
+     /**
+     * True if this row is the current row
+     */
+    current: PropTypes.bool.isRequired,
+    
+     /**
+     * True if this row is selected
+     */
+    selected: PropTypes.bool.isRequired,    
 
     /**
      * Array of <FixedDataTableColumn /> for the scrollable columns.
@@ -106,6 +116,8 @@ var FixedDataTableRowImpl = React.createClass({
       'public/fixedDataTableRow/highlighted': (this.props.index % 2 === 1),
       'public/fixedDataTableRow/odd': (this.props.index % 2 === 1),
       'public/fixedDataTableRow/even': (this.props.index % 2 === 0),
+      'public/fixedDataTableRow/selected': (this.props.selected),
+      'public/fixedDataTableRow/current': (this.props.current)
     });
 
     var isHeaderOrFooterRow = this.props.index === -1;

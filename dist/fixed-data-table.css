@@ -512,3 +512,13 @@ body[dir="rtl"] .fixedDataTableColumnResizerLineLayout_main {
 .public_fixedDataTableRow_columnsShadow {
   background: 0 0 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAABCAYAAAD5PA/NAAAAFklEQVQIHWPSkNeSBmJhTQVtbiDNCgASagIIuJX8OgAAAABJRU5ErkJggg==) repeat-y;
 }
+
+.public_fixedDataTableRow_selected {
+  background-color: deepskyblue;
+}
+
+.public_fixedDataTableRow_current {
+  border-style: dotted;
+  border-width: 2px;
+  border-color: black;
+}

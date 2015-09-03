@@ -22,6 +22,46 @@ var FixedDataTableColumnResizeHandle = require('FixedDataTableColumnResizeHandle
 var FixedDataTableRow = require('FixedDataTableRow.react');
 var FixedDataTableScrollHelper = require('FixedDataTableScrollHelper');
 var FixedDataTableWidthHelper = require('FixedDataTableWidthHelper');
+var keys = require('keys')
+
+
+  var _ = {
+    remove(items, value) {
+      var index = items.indexOf(value);
+      while (index !== -1) {
+        items.splice(index, 1);
+        index = items.indexOf(value);
+      }
+      return;
+    },
+    includes(items, value) {
+      for (var i = 0; i < items.length; i++) {
+        if (items[i] == value) {
+          return true;
+        }
+      }
+      return false;
+    },
+    equals(items1, items2) {
+      if (items1.length !== items2.length) {
+        return false;
+      } else {
+        for (var i = 0; i < items1.length; i++) {
+          var found = false;
+          for (var j = 0; j < items2.length; j++) {
+            if (items1[i] === items2[j]) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            return false;
+          }
+        }
+        return true;
+      }
+    }
+  }   
 
 var cx = require('cx');
 var debounceCore = require('debounceCore');
@@ -87,6 +127,10 @@ var BORDER_HEIGHT = 1;
 var FixedDataTable = React.createClass({
 
   propTypes: {
+    /**
+     * Event to fire when the selected rows changed
+     */
+    onSelectionChanged: PropTypes.object,    
 
     /**
      * Pixel width of table. If all columns do not fit,
@@ -316,10 +360,15 @@ var FixedDataTable = React.createClass({
     if (scrollToRow !== undefined && scrollToRow !== null) {
       this._rowToScrollTo = scrollToRow;
     }
+    var scrollTop = this.props.scrollTop;
+    if (scrollTop !== undefined && scrollTop !== null) {
+      this._positionToScrollTo = scrollTop;
+    }
     var scrollToColumn = this.props.scrollToColumn;
     if (scrollToColumn !== undefined && scrollToColumn !== null) {
       this._columnToScrollTo = scrollToColumn;
     }
+
     this._wheelHandler = new ReactWheelHandler(
       this._onWheel,
       this._shouldHandleWheelX,
@@ -388,11 +437,14 @@ var FixedDataTable = React.createClass({
     if (scrollToRow !== undefined && scrollToRow !== null) {
       this._rowToScrollTo = scrollToRow;
     }
+    var scrollTop = nextProps.scrollTop;
+    if (scrollTop !== undefined && scrollTop !== null) {
+      this._positionToScrollTo = scrollTop;
+    }
     var scrollToColumn = nextProps.scrollToColumn;
     if (scrollToColumn !== undefined && scrollToColumn !== null) {
       this._columnToScrollTo = scrollToColumn;
     }
-
     var newOverflowX = nextProps.overflowX;
     var newOverflowY = nextProps.overflowY;
     if (newOverflowX !== this.props.overflowX ||
@@ -428,6 +480,8 @@ var FixedDataTable = React.createClass({
           width={state.width}
           height={state.groupHeaderHeight}
           index={0}
+          current={false}
+          selected={false}
           zIndex={1}
           offsetTop={0}
           scrollLeft={state.scrollX}
@@ -520,6 +574,8 @@ var FixedDataTable = React.createClass({
           fixedColumns={state.footFixedColumns}
           height={state.footerHeight}
           index={-1}
+          current={false}
+          selected={false}
           zIndex={1}
           offsetTop={footOffsetTop}
           scrollableColumns={state.footScrollableColumns}
@@ -540,6 +596,8 @@ var FixedDataTable = React.createClass({
         data={state.headData}
         width={state.width}
         height={state.headerHeight}
+        current={false}
+        selected={false}
         index={-1}
         zIndex={1}
         offsetTop={headerOffsetTop}
@@ -580,6 +638,8 @@ var FixedDataTable = React.createClass({
 
     return (
       <div
+        tabIndex = {0}
+        onKeyDown={this._onKeyDown}
         className={joinClasses(
           cx('fixedDataTableLayout/main'),
           cx('public/fixedDataTable/main'),
@@ -613,6 +673,8 @@ var FixedDataTable = React.createClass({
         firstRowOffset={state.firstRowOffset}
         fixedColumns={state.bodyFixedColumns}
         height={state.bodyHeight}
+        currentRow={state.currentRow}
+        selectedRows={state.selectedRows}
         offsetTop={offsetTop}
         onRowClick={state.onRowClick}
         onRowDoubleClick={state.onRowDoubleClick}
@@ -743,6 +805,149 @@ var FixedDataTable = React.createClass({
 
     return columnInfo;
   },
+  _onRowClick(event, index, data) {
+ 
+    var oldSelectedRows = this.state.selectedRows;
+    var selectedRows = oldSelectedRows.slice(0, oldSelectedRows.length);
+    
+    var prevCurrent = this.state.currentRow;
+    var currentRow = index;
+    var newSelectedRows = [];
+    if (event.ctrlKey) {
+      if (_.includes(currentRow)) {
+        _.remove(selectedRows, currentRow);
+      } else {
+        newSelectedRows.push(index);
+      }
+    } else if (event.shiftKey) {
+      var direction = prevCurrent > currentRow ? -1 : 1;
+      var thisRow = prevCurrent;
+      while (thisRow !== currentRow) {
+        var nextRow = thisRow + 1 * direction;
+        if (!_.includes(selectedRows, nextRow)) {
+          newSelectedRows.push(thisRow);
+        } else {
+          _.remove(selectedRows, thisRow);
+        }
+        thisRow = nextRow;
+      }
+      newSelectedRows.push(currentRow);
+      window.getSelection().empty();
+    } else {
+      selectedRows = [];
+      newSelectedRows = [currentRow];
+    }
+    var selectedRows = selectedRows.concat(newSelectedRows)
+    this.setState({ 
+      currentRow: currentRow, 
+      selectedRows: selectedRows,
+      mouseUsed: true,
+      keyboardUsed: false
+    });
+    
+    if (this.props.onSelectionChanged && !_.equals(oldSelectedRows, selectedRows)) {
+      this.props.onSelectionChanged(selectedRows);
+    }
+        
+    if (this.props.onRowClick) {
+      this.props.onRowClick(event, index, data);
+    }
+    
+    
+  },
+     
+  _onKeyDown(event) {
+    var currentRow = this.state.currentRow;
+    var prevCurrent = currentRow;
+    var oldSelectedRows = this.state.selectedRows;
+    var selectedRows = oldSelectedRows.slice(0, oldSelectedRows.length);
+    var mouseUsed = this.state.mouseUsed;
+    var keyboardUsed = false;
+    var newSelectedRows = [];
+    
+    keyboardUsed = _.includes([keys.PAGE_UP, keys.PAGE_DOWN, keys.UP, keys.DOWN, keys.HOME, keys.END], event.which);
+    
+    var scroll;
+    var maxRow = this.props.rowsCount - 1;
+    
+    switch(event.which) {
+      case keys.PAGE_UP:
+        scroll = this._scrollHelper.scrollPages(-1);
+        currentRow = scroll.index;
+        break;
+      case keys.PAGE_DOWN:
+        scroll = this._scrollHelper.scrollPages(1);
+        currentRow = scroll.index;
+        break;
+      case keys.UP:
+        currentRow--;
+        if (currentRow < 0) {
+          currentRow = 0;
+        }
+        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
+        keyboardUsed = true;
+        break;
+      case keys.DOWN:
+        currentRow++
+        if (currentRow > maxRow) {
+          currentRow = maxRow;
+        }
+        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
+        break;
+      case keys.HOME:
+        currentRow = 0;
+        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
+        break;
+      case keys.END:
+        currentRow = maxRow;
+        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
+        break;
+    }  
+    
+    if (keyboardUsed) {
+      if (mouseUsed) {
+        selectedRows = [];
+        mouseUsed = false;
+      }
+      if (event.shiftKey) {
+        var direction = prevCurrent > currentRow ? -1 : 1;
+        var thisRow = prevCurrent;
+        while (thisRow !== currentRow) {
+          var nextRow = thisRow + 1 * direction;
+          if (!_.includes(selectedRows, nextRow)) {
+            newSelectedRows.push(thisRow);
+          } else {
+            _.remove(selectedRows, thisRow);
+          }
+          thisRow = nextRow;
+        }
+        newSelectedRows.push(currentRow);
+      } else {
+        selectedRows = [];
+        newSelectedRows = [currentRow];
+      }
+    }
+    selectedRows = selectedRows.concat(newSelectedRows);
+    
+    if (keyboardUsed) {
+      this.setState({
+          firstRowIndex: scroll.index,
+          firstRowOffset: scroll.offset,
+          scrollY: scroll.position,
+          scrollContentHeight: scroll.contentHeight,
+          mouseUsed: false,
+          keyboardUsed: true,
+          currentRow: currentRow,
+          selectedRows: selectedRows
+      });      
+      if (this.props.onSelectionChanged && !_.equals(oldSelectedRows, selectedRows)) {
+          this.props.onSelectionChanged(currentRow, selectedRows);
+      }
+    }
+
+    
+
+  },
 
   _calculateState(/*object*/ props, /*?object*/ oldState) /*object*/ {
     invariant(
@@ -768,7 +973,6 @@ var FixedDataTable = React.createClass({
     if (children.length && children[0].type.__TableColumnGroup__) {
       useGroupHeader = true;
     }
-
     var firstRowIndex = (oldState && oldState.firstRowIndex) || 0;
     var firstRowOffset = (oldState && oldState.firstRowOffset) || 0;
     var scrollX, scrollY;
@@ -777,23 +981,26 @@ var FixedDataTable = React.createClass({
     } else {
       scrollX = props.scrollLeft;
     }
-    if (oldState && props.overflowY !== 'hidden') {
-      scrollY = oldState.scrollY;
-    } else {
-      scrollState = this._scrollHelper.scrollTo(props.scrollTop);
+    var currentRow = (oldState && oldState.currentRow) || 0;
+    var selectedRows = (oldState && oldState.selectedRows) || [0];
+    var keyboardUsed = (oldState && oldState.keyboardUsed) || false;
+    var mouseUsed = (oldState && oldState.mouseUsed) || false;
+    if (this._positionToScrollTo !== undefined) {
+      scrollState = this._scrollHelper.scrollTo(this._positionToScrollTo);
       firstRowIndex = scrollState.index;
       firstRowOffset = scrollState.offset;
       scrollY = scrollState.position;
-    }
-
-    if (this._rowToScrollTo !== undefined) {
+      delete this._positionToScrollTo;
+    } else if (this._rowToScrollTo !== undefined) {
       scrollState =
         this._scrollHelper.scrollRowIntoView(this._rowToScrollTo);
       firstRowIndex = scrollState.index;
       firstRowOffset = scrollState.offset;
       scrollY = scrollState.position;
       delete this._rowToScrollTo;
-    }
+    } 
+    
+
 
     var groupHeaderHeight = useGroupHeader ? props.groupHeaderHeight : 0;
 
@@ -925,6 +1132,7 @@ var FixedDataTable = React.createClass({
     }
 
     this._scrollHelper.setViewportHeight(bodyHeight);
+    
 
     // The order of elements in this object metters and bringing bodyHeight,
     // height or useGroupHeader to the top can break various features
@@ -948,9 +1156,13 @@ var FixedDataTable = React.createClass({
       scrollContentHeight,
       scrollX,
       scrollY,
-
+      currentRow,
+      selectedRows,
+      keyboardUsed,
+      mouseUsed,
       // These properties may overwrite properties defined in
       // columnInfo and props
+      onRowClick: this._onRowClick,
       bodyHeight,
       height,
       groupHeaderHeight,

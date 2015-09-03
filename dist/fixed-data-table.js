@@ -176,8 +176,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 
 	var FixedDataTable = __webpack_require__(26);
-	var FixedDataTableColumn = __webpack_require__(32);
-	var FixedDataTableColumnGroup = __webpack_require__(31);
+	var FixedDataTableColumn = __webpack_require__(75);
+	var FixedDataTableColumnGroup = __webpack_require__(76);
 
 	var FixedDataTableRoot = {
 	  Column: FixedDataTableColumn,
@@ -221,6 +221,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var FixedDataTableRow = __webpack_require__(59);
 	var FixedDataTableScrollHelper = __webpack_require__(70);
 	var FixedDataTableWidthHelper = __webpack_require__(72);
+	var keys = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"keys\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 	var cx = __webpack_require__(48);
 	var debounceCore = __webpack_require__(73);
@@ -288,6 +289,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  displayName: 'FixedDataTable',
 
 	  propTypes: {
+	    /**
+	     * Key code to process such as 33 for page up
+	     */
+	    keyDownEvent: PropTypes.object,
 
 	    /**
 	     * Pixel width of table. If all columns do not fit,
@@ -505,9 +510,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (scrollToRow !== undefined && scrollToRow !== null) {
 	      this._rowToScrollTo = scrollToRow;
 	    }
+	    var scrollTop = this.props.scrollTop;
+	    if (scrollTop !== undefined && scrollTop !== null) {
+	      this._positionToScrollTo = scrollTop;
+	    }
 	    var scrollToColumn = this.props.scrollToColumn;
 	    if (scrollToColumn !== undefined && scrollToColumn !== null) {
 	      this._columnToScrollTo = scrollToColumn;
+	    }
+	    var keyDownEvent = this.props.keyDownEvent;
+	    if (keyDownEvent !== undefined && keyDownEvent !== null) {
+	      this._keyDownEvent = keyDownEvent;
 	    }
 	    this._wheelHandler = new ReactWheelHandler(this._onWheel, this._shouldHandleWheelX, this._shouldHandleWheelY);
 	  },
@@ -566,11 +579,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (scrollToRow !== undefined && scrollToRow !== null) {
 	      this._rowToScrollTo = scrollToRow;
 	    }
+	    var scrollTop = nextProps.scrollTop;
+	    if (scrollTop !== undefined && scrollTop !== null) {
+	      this._positionToScrollTo = scrollTop;
+	    }
 	    var scrollToColumn = nextProps.scrollToColumn;
 	    if (scrollToColumn !== undefined && scrollToColumn !== null) {
 	      this._columnToScrollTo = scrollToColumn;
 	    }
-
+	    var keyDownEvent = nextProps.keyDownEvent;
+	    if (keyDownEvent !== undefined && keyDownEvent !== null) {
+	      this._keyDownEvent = keyDownEvent;
+	    }
 	    var newOverflowX = nextProps.overflowX;
 	    var newOverflowY = nextProps.overflowY;
 	    if (newOverflowX !== this.props.overflowX || newOverflowY !== this.props.overflowY) {
@@ -599,6 +619,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	        width: state.width,
 	        height: state.groupHeaderHeight,
 	        index: 0,
+	        current: false,
+	        selected: false,
 	        zIndex: 1,
 	        offsetTop: 0,
 	        scrollLeft: state.scrollX,
@@ -675,6 +697,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	        fixedColumns: state.footFixedColumns,
 	        height: state.footerHeight,
 	        index: -1,
+	        current: false,
+	        selected: false,
 	        zIndex: 1,
 	        offsetTop: footOffsetTop,
 	        scrollableColumns: state.footScrollableColumns,
@@ -691,6 +715,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	      data: state.headData,
 	      width: state.width,
 	      height: state.headerHeight,
+	      current: false,
+	      selected: false,
 	      index: -1,
 	      zIndex: 1,
 	      offsetTop: headerOffsetTop,
@@ -749,6 +775,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	      firstRowOffset: state.firstRowOffset,
 	      fixedColumns: state.bodyFixedColumns,
 	      height: state.bodyHeight,
+	      currentRow: state.currentRow,
+	      selectedRows: state.selectedRows,
 	      offsetTop: offsetTop,
 	      onRowClick: state.onRowClick,
 	      onRowDoubleClick: state.onRowDoubleClick,
@@ -860,6 +888,76 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return columnInfo;
 	  },
 
+	  _onKeyDown: function _onKeyDown(event, oldState) {
+	    var prevCurrent = this._currentRow;
+
+	    var currentRow = oldState && oldState.currentRow || 0;
+	    var selectedRows = oldState && oldState.selectedRows || [];
+	    var newSelectedRows = [];
+
+	    var scroll;
+	    var maxRow = this.props.rowsCount - 1;
+
+	    switch (event.which) {
+	      case keys.PAGE_UP:
+	        scroll = this._scrollHelper.scrollPages(-1);
+	        currentRow = scroll.index;
+	        break;
+	      case keys.PAGE_DOWN:
+	        scroll = this._scrollHelper.scrollPages(1);
+	        currentRow = scroll.index;
+	        break;
+	      case keys.UP:
+	        currentRow--;
+	        if (currentRow < 0) {
+	          currentRow = 0;
+	        }
+	        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
+	        break;
+	      case keys.DOWN:
+	        currentRow++;
+	        if (currentRow > maxRow) {
+	          currentRow = maxRow;
+	        }
+	        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
+	        break;
+	      case keys.HOME:
+	        currentRow = 0;
+	        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
+	        break;
+	      case keys.END:
+	        currentRow = maxRow;
+	        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
+	        break;
+	    }
+	    if (event.shiftKey) {
+	      var start = prevCurrent;
+	      var finish = this._currentRow;
+	      if (start > finish) {
+	        var temp = start;
+	        start = finish;
+	        finish = temp;
+	      }
+	      var newSelectedRows = [];
+	      for (var i = start; i <= finish; i++) {
+	        var add = true;
+	        for (var j = 0; j < selectedRows; i++) {
+	          var selectedRowIndex = selectedRows[j];
+	          if (selectedRowIndex === i) {
+	            add = false;
+	            break;
+	          }
+	        }
+	        if (add) {
+	          newSelectedRows.push(i);
+	        }
+	      }
+	    }
+	    scroll.currentRow = currentRow;
+	    scroll.selectedRows = newSelectedRows;
+	    return scroll;
+	  },
+
 	  _calculateState: function _calculateState( /*object*/props, /*?object*/oldState) /*object*/{
 	    invariant(props.height !== undefined || props.maxHeight !== undefined, 'You must set either a height or a maxHeight');
 
@@ -885,21 +983,30 @@ return /******/ (function(modules) { // webpackBootstrap
 	    } else {
 	      scrollX = props.scrollLeft;
 	    }
-	    if (oldState && props.overflowY !== 'hidden') {
-	      scrollY = oldState.scrollY;
-	    } else {
-	      scrollState = this._scrollHelper.scrollTo(props.scrollTop);
+	    var currentRow = oldState && oldState.currentRow || 0;
+	    var selectedRows = oldState && oldState.selectedRows || [];
+	    if (this._positionToScrollTo !== undefined) {
+	      scrollState = this._scrollHelper.scrollTo(this._positionToScrollTo);
 	      firstRowIndex = scrollState.index;
 	      firstRowOffset = scrollState.offset;
 	      scrollY = scrollState.position;
-	    }
-
-	    if (this._rowToScrollTo !== undefined) {
+	      delete this._positionToScrollTo;
+	    } else if (this._rowToScrollTo !== undefined) {
 	      scrollState = this._scrollHelper.scrollRowIntoView(this._rowToScrollTo);
 	      firstRowIndex = scrollState.index;
 	      firstRowOffset = scrollState.offset;
 	      scrollY = scrollState.position;
 	      delete this._rowToScrollTo;
+	    } else if (this._keyDownEvent !== undefined) {
+	      var scrollState = this._onKeyDown(this._keyDownEvent, oldState);
+	      if (scrollState) {
+	        firstRowIndex = scrollState.index;
+	        firstRowOffset = scrollState.offset;
+	        scrollY = scrollState.position;
+	        currentRow = scrollState.currentRow;
+	        selectedRows = scrollState.selectedRows;
+	      }
+	      delete this._keyDownEvent;
 	    }
 
 	    var groupHeaderHeight = useGroupHeader ? props.groupHeaderHeight : 0;
@@ -1021,7 +1128,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	      scrollContentHeight: scrollContentHeight,
 	      scrollX: scrollX,
 	      scrollY: scrollY,
-
+	      currentRow: currentRow,
+	      selectedRows: selectedRows,
 	      // These properties may overwrite properties defined in
 	      // columnInfo and props
 	      bodyHeight: bodyHeight,
@@ -3751,7 +3859,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	    scrollLeft: PropTypes.number.isRequired,
 	    scrollableColumns: PropTypes.array.isRequired,
 	    showLastRowBorder: PropTypes.bool,
-	    width: PropTypes.number.isRequired
+	    width: PropTypes.number.isRequired,
+	    currentRow: PropTypes.number.isRequired,
+	    selectedRows: PropTypes.array.isRequired
 	  },
 
 	  getInitialState: function getInitialState() /*object*/{
@@ -3819,6 +3929,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	      this._staticRowArray[i] = React.createElement(FixedDataTableRow, {
 	        key: i,
 	        index: rowIndex,
+	        current: rowIndex === props.currentRow,
+	        selected: props.selectedRows.indexOf(rowIndex) !== -1,
 	        data: rowGetter(rowIndex),
 	        width: props.width,
 	        height: currentRowHeight,
@@ -4456,6 +4568,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	    index: PropTypes.number.isRequired,
 
 	    /**
+	    * True if this row is the current row
+	    */
+	    current: PropTypes.bool.isRequired,
+
+	    /**
+	    * True if this row is selected
+	    */
+	    selected: PropTypes.bool.isRequired,
+
+	    /**
 	     * Array of <FixedDataTableColumn /> for the scrollable columns.
 	     */
 	    scrollableColumns: PropTypes.array.isRequired,
@@ -4505,7 +4627,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	      'public/fixedDataTableRow/main': true,
 	      'public/fixedDataTableRow/highlighted': this.props.index % 2 === 1,
 	      'public/fixedDataTableRow/odd': this.props.index % 2 === 1,
-	      'public/fixedDataTableRow/even': this.props.index % 2 === 0
+	      'public/fixedDataTableRow/even': this.props.index % 2 === 0,
+	      'public/fixedDataTableRow/selected': this.props.selected,
+	      'public/fixedDataTableRow/current': this.props.current
 	    });
 
 	    var isHeaderOrFooterRow = this.props.index === -1;
@@ -5964,6 +6088,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    this.scrollBy = this.scrollBy.bind(this);
 	    this.scrollTo = this.scrollTo.bind(this);
 	    this.scrollToRow = this.scrollToRow.bind(this);
+	    this.scrollPages = this.scrollPages.bind(this);
 	    this.setRowHeightGetter = this.setRowHeightGetter.bind(this);
 	    this.getContentHeight = this.getContentHeight.bind(this);
 	    this.getRowPosition = this.getRowPosition.bind(this);
@@ -6024,6 +6149,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return change;
 	      }
 	      return 0;
+	    }
+	  }, {
+	    key: 'scrollPages',
+	    value: function scrollPages(pages) {
+	      var distance = pages * this._viewportHeight;
+	      return this.scrollBy(distance);
 	    }
 	  }, {
 	    key: 'getRowPosition',
@@ -6736,6 +6867,286 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 
 	module.exports = shallowEqual;
+
+/***/ },
+/* 75 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright (c) 2015, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @providesModule FixedDataTableColumn.react
+	 * @typechecks
+	 */
+
+	'use strict';
+
+	var React = __webpack_require__(29);
+
+	var PropTypes = React.PropTypes;
+
+	/**
+	 * Component that defines the attributes of table column.
+	 */
+	var FixedDataTableColumn = React.createClass({
+	  displayName: 'FixedDataTableColumn',
+
+	  statics: {
+	    __TableColumn__: true
+	  },
+
+	  propTypes: {
+	    /**
+	     * The horizontal alignment of the table cell content.
+	     */
+	    align: PropTypes.oneOf(['left', 'center', 'right']),
+
+	    /**
+	     * className for this column's header cell.
+	     */
+	    headerClassName: PropTypes.string,
+
+	    /**
+	     * className for this column's footer cell.
+	     */
+	    footerClassName: PropTypes.string,
+
+	    /**
+	     * className for each of this column's data cells.
+	     */
+	    cellClassName: PropTypes.string,
+
+	    /**
+	     * The cell renderer that returns React-renderable content for table cell.
+	     * ```
+	     * function(
+	     *   cellData: any,
+	     *   cellDataKey: string,
+	     *   rowData: object,
+	     *   rowIndex: number,
+	     *   columnData: any,
+	     *   width: number
+	     * ): ?$jsx
+	     * ```
+	     */
+	    cellRenderer: PropTypes.func,
+
+	    /**
+	     * The getter `function(string_cellDataKey, object_rowData)` that returns
+	     * the cell data for the `cellRenderer`.
+	     * If not provided, the cell data will be collected from
+	     * `rowData[cellDataKey]` instead. The value that `cellDataGetter` returns
+	     * will be used to determine whether the cell should re-render.
+	     */
+	    cellDataGetter: PropTypes.func,
+
+	    /**
+	     * The key to retrieve the cell data from the data row. Provided key type
+	     * must be either `string` or `number`. Since we use this
+	     * for keys, it must be specified for each column.
+	     */
+	    dataKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+
+	    /**
+	     * Controls if the column is fixed when scrolling in the X axis.
+	     */
+	    fixed: PropTypes.bool,
+
+	    /**
+	     * The cell renderer that returns React-renderable content for table column
+	     * header.
+	     * ```
+	     * function(
+	     *   label: ?string,
+	     *   cellDataKey: string,
+	     *   columnData: any,
+	     *   rowData: array<?object>,
+	     *   width: number
+	     * ): ?$jsx
+	     * ```
+	     */
+	    headerRenderer: PropTypes.func,
+
+	    /**
+	     * The cell renderer that returns React-renderable content for table column
+	     * footer.
+	     * ```
+	     * function(
+	     *   label: ?string,
+	     *   cellDataKey: string,
+	     *   columnData: any,
+	     *   rowData: array<?object>,
+	     *   width: number
+	     * ): ?$jsx
+	     * ```
+	     */
+	    footerRenderer: PropTypes.func,
+
+	    /**
+	     * Bucket for any data to be passed into column renderer functions.
+	     */
+	    columnData: PropTypes.object,
+
+	    /**
+	     * The column's header label.
+	     */
+	    label: PropTypes.string,
+
+	    /**
+	     * The pixel width of the column.
+	     */
+	    width: PropTypes.number.isRequired,
+
+	    /**
+	     * If this is a resizable column this is its minimum pixel width.
+	     */
+	    minWidth: PropTypes.number,
+
+	    /**
+	     * If this is a resizable column this is its maximum pixel width.
+	     */
+	    maxWidth: PropTypes.number,
+
+	    /**
+	     * The grow factor relative to other columns. Same as the flex-grow API
+	     * from http://www.w3.org/TR/css3-flexbox/. Basically, take any available
+	     * extra width and distribute it proportionally according to all columns'
+	     * flexGrow values. Defaults to zero (no-flexing).
+	     */
+	    flexGrow: PropTypes.number,
+
+	    /**
+	     * Whether the column can be resized with the
+	     * FixedDataTableColumnResizeHandle. Please note that if a column
+	     * has a flex grow, once you resize the column this will be set to 0.
+	     *
+	     * This property only provides the UI for the column resizing. If this
+	     * is set to true, you will need ot se the onColumnResizeEndCallback table
+	     * property and render your columns appropriately.
+	     */
+	    isResizable: PropTypes.bool,
+
+	    /**
+	     * Experimental feature
+	     * Whether cells in this column can be removed from document when outside
+	     * of viewport as a result of horizontal scrolling.
+	     * Setting this property to true allows the table to not render cells in
+	     * particular column that are outside of viewport for visible rows. This
+	     * allows to create table with many columns and not have vertical scrolling
+	     * performance drop.
+	     * Setting the property to false will keep previous behaviour and keep
+	     * cell rendered if the row it belongs to is visible.
+	     */
+	    allowCellsRecycling: PropTypes.bool
+	  },
+
+	  getDefaultProps: function getDefaultProps() /*object*/{
+	    return {
+	      allowCellsRecycling: false,
+	      fixed: false
+	    };
+	  },
+
+	  render: function render() {
+	    if (true) {
+	      throw new Error('Component <FixedDataTableColumn /> should never render');
+	    }
+	    return null;
+	  }
+	});
+
+	module.exports = FixedDataTableColumn;
+
+/***/ },
+/* 76 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright (c) 2015, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @providesModule FixedDataTableColumnGroup.react
+	 * @typechecks
+	 */
+
+	'use strict';
+
+	var React = __webpack_require__(29);
+
+	var PropTypes = React.PropTypes;
+
+	/**
+	 * Component that defines the attributes of a table column group.
+	 */
+	var FixedDataTableColumnGroup = React.createClass({
+	  displayName: 'FixedDataTableColumnGroup',
+
+	  statics: {
+	    __TableColumnGroup__: true
+	  },
+
+	  propTypes: {
+	    /**
+	     * The horizontal alignment of the table cell content.
+	     */
+	    align: PropTypes.oneOf(['left', 'center', 'right']),
+
+	    /**
+	     * Controls if the column group is fixed when scrolling in the X axis.
+	     */
+	    fixed: PropTypes.bool,
+
+	    /**
+	     * Bucket for any data to be passed into column group renderer functions.
+	     */
+	    columnGroupData: PropTypes.object,
+
+	    /**
+	     * The column group's header label.
+	     */
+	    label: PropTypes.string,
+
+	    /**
+	     * The cell renderer that returns React-renderable content for a table
+	     * column group header. If it's not specified, the label from props will
+	     * be rendered as header content.
+	     * ```
+	     * function(
+	     *   label: ?string,
+	     *   cellDataKey: string,
+	     *   columnGroupData: any,
+	     *   rowData: array<?object>, // array of labels of all columnGroups
+	     *   width: number
+	     * ): ?$jsx
+	     * ```
+	     */
+	    groupHeaderRenderer: PropTypes.func
+	  },
+
+	  getDefaultProps: function getDefaultProps() /*object*/{
+	    return {
+	      fixed: false
+	    };
+	  },
+
+	  render: function render() {
+	    if (true) {
+	      throw new Error('Component <FixedDataTableColumnGroup /> should never render');
+	    }
+	    return null;
+	  }
+	});
+
+	module.exports = FixedDataTableColumnGroup;
 
 /***/ }
 /******/ ])

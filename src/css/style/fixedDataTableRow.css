@@ -28,3 +28,13 @@
 .public/fixedDataTableRow/columnsShadow {
   background: 0 0 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAABCAYAAAD5PA/NAAAAFklEQVQIHWPSkNeSBmJhTQVtbiDNCgASagIIuJX8OgAAAABJRU5ErkJggg==) repeat-y;
 }
+
+.public/fixedDataTableRow/selected {
+  background-color: deepskyblue;
+}
+
+.public/fixedDataTableRow/current {
+  border-style: dotted;
+  border-width: 2px;
+  border-color: black;
+}
