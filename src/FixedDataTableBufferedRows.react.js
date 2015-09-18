@@ -18,6 +18,7 @@ var cx = require('cx');
 var emptyFunction = require('emptyFunction');
 var joinClasses = require('joinClasses');
 var translateDOMPositionXY = require('translateDOMPositionXY');
+var _ = require("lodash");
 
 var {PropTypes} = React;
 
@@ -45,7 +46,8 @@ var FixedDataTableBufferedRows = React.createClass({
     showLastRowBorder: PropTypes.bool,
     width: PropTypes.number.isRequired,
     currentRow: PropTypes.number.isRequired,
-    selectedRows: PropTypes.array.isRequired
+    selectedRows: PropTypes.array.isRequired,
+    bookmarks: PropTypes.array.isRequired
   },
 
   getInitialState() /*object*/ {
@@ -76,6 +78,7 @@ var FixedDataTableBufferedRows = React.createClass({
     if (nextProps.rowsCount !== this.props.rowsCount ||
         nextProps.defaultRowHeight !== this.props.defaultRowHeight ||
         nextProps.height !== this.props.height) {
+          
       this._rowBuffer =
         new FixedDataTableRowBuffer(
           nextProps.rowsCount,
@@ -130,6 +133,9 @@ var FixedDataTableBufferedRows = React.createClass({
 
       var hasBottomBorder =
         rowIndex === props.rowsCount - 1 && props.showLastRowBorder;
+        
+      var bookmark = _.find(props.bookmarks, b => b.row === rowIndex);
+      var bookmarkType = bookmark? bookmark.type : null;
 
       this._staticRowArray[i] =
         <FixedDataTableRow
@@ -137,6 +143,7 @@ var FixedDataTableBufferedRows = React.createClass({
           index={rowIndex}
           current={rowIndex === props.currentRow}
           selected={props.selectedRows.indexOf(rowIndex) !== -1}
+          bookmarkType={bookmarkType}
           data={rowGetter(rowIndex)}
           width={props.width}
           height={currentRowHeight}

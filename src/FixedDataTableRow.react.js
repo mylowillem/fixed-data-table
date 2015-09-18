@@ -117,9 +117,14 @@ var FixedDataTableRowImpl = React.createClass({
       'public/fixedDataTableRow/odd': (this.props.index % 2 === 1),
       'public/fixedDataTableRow/even': (this.props.index % 2 === 0),
       'public/fixedDataTableRow/selected': (this.props.selected),
-      'public/fixedDataTableRow/current': (this.props.current)
+      'public/fixedDataTableRow/current': (this.props.current),
     });
-
+    
+    if (this.props.bookmarkType) {
+      var bookmarkClass = 'public_fixedDataTableRow_bookmark' + (this.props.bookmarkType);
+      className = joinClasses(className, bookmarkClass);
+    }
+    
     var isHeaderOrFooterRow = this.props.index === -1;
     if (!this.props.data && !isHeaderOrFooterRow) {
       return (

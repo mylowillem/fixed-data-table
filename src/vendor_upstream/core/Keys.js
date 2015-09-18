@@ -31,5 +31,9 @@ module.exports = {
   Z:         90,
   ZERO:      48,
   NUMPAD_0:  96,
-  NUMPAD_9: 105
+  NUMPAD_9: 105,
+  C: 67,
+  c: 99,
+  T: 84,
+  t: 116
 };

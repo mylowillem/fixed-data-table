@@ -30,11 +30,46 @@
 }
 
 .public/fixedDataTableRow/selected {
-  background-color: deepskyblue;
+  background-color: skyblue;
+}
+
+.public/fixedDataTableRow/bookmark1 {
+  font-weight: bold;
+  color: red;
+}
+
+.public/fixedDataTableRow/bookmark2 {
+  font-weight: bold;
+  color: blue;
+}
+
+.public/fixedDataTableRow/bookmark3 {
+  font-weight: bold;
+  color: gold;
+}
+
+.public/fixedDataTableRow/bookmark4 {
+  font-weight: bold;
+  color: green;
+}
+
+.public/fixedDataTableRow/bookmark5 {
+  font-weight: bold;
+  color: orange;
+}
+
+.public/fixedDataTableRow/bookmark6 {
+  font-weight: bold;
+  color: purple;
 }
 
 .public/fixedDataTableRow/current {
   border-style: dotted;
   border-width: 2px;
   border-color: black;
+}
+
+.public/fixedDataTableRow/highlighted,
+.public/fixedDataTableRow/selected .public/fixedDataTableCell/main {
+  background-color: skyblue;
 }

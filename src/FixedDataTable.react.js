@@ -22,46 +22,9 @@ var FixedDataTableColumnResizeHandle = require('FixedDataTableColumnResizeHandle
 var FixedDataTableRow = require('FixedDataTableRow.react');
 var FixedDataTableScrollHelper = require('FixedDataTableScrollHelper');
 var FixedDataTableWidthHelper = require('FixedDataTableWidthHelper');
-var keys = require('keys')
+var Keys = require('Keys');
+var _ = require('lodash');
 
-
-  var _ = {
-    remove(items, value) {
-      var index = items.indexOf(value);
-      while (index !== -1) {
-        items.splice(index, 1);
-        index = items.indexOf(value);
-      }
-      return;
-    },
-    includes(items, value) {
-      for (var i = 0; i < items.length; i++) {
-        if (items[i] == value) {
-          return true;
-        }
-      }
-      return false;
-    },
-    equals(items1, items2) {
-      if (items1.length !== items2.length) {
-        return false;
-      } else {
-        for (var i = 0; i < items1.length; i++) {
-          var found = false;
-          for (var j = 0; j < items2.length; j++) {
-            if (items1[i] === items2[j]) {
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            return false;
-          }
-        }
-        return true;
-      }
-    }
-  }   
 
 var cx = require('cx');
 var debounceCore = require('debounceCore');
@@ -127,6 +90,23 @@ var BORDER_HEIGHT = 1;
 var FixedDataTable = React.createClass({
 
   propTypes: {
+    
+    /**
+     * Keyboard command on the grid
+     */
+    onCommand: PropTypes.func,
+    
+
+    /**
+     * List of bookmarked rows and types of bookmarks
+     */
+    bookmarks: PropTypes.array,
+    
+        /**
+     * Event to fire when the selected rows changed
+     */
+    onBookmarksChanged: PropTypes.func, 
+    
     /**
      * Event to fire when the selected rows changed
      */
@@ -643,7 +623,7 @@ var FixedDataTable = React.createClass({
         className={joinClasses(
           cx('fixedDataTableLayout/main'),
           cx('public/fixedDataTable/main'),
-        )}
+        ) + " notselectable"}
         onWheel={this._wheelHandler.onWheel}
         style={{height: state.height, width: state.width}}>
         <div
@@ -675,6 +655,7 @@ var FixedDataTable = React.createClass({
         height={state.bodyHeight}
         currentRow={state.currentRow}
         selectedRows={state.selectedRows}
+        bookmarks={state.bookmarks}
         offsetTop={offsetTop}
         onRowClick={state.onRowClick}
         onRowDoubleClick={state.onRowDoubleClick}
@@ -839,7 +820,7 @@ var FixedDataTable = React.createClass({
     }
     var selectedRows = selectedRows.concat(newSelectedRows)
     
-    if (this.props.onSelectionChanged && !_.equals(oldSelectedRows, selectedRows)) {
+    if (this.props.onSelectionChanged && !_.isEqual(oldSelectedRows, selectedRows)) {
       this.props.onSelectionChanged(currentRow, selectedRows);
     }
         
@@ -861,29 +842,65 @@ var FixedDataTable = React.createClass({
   },
      
   _onKeyDown(event) {
+    
     var currentRow = this.state.currentRow;
     var prevCurrent = currentRow;
     var oldSelectedRows = this.state.selectedRows;
+    var bookmarks = this.state.bookmarks || [];
+    
     var selectedRows = oldSelectedRows.slice(0, oldSelectedRows.length);
     var mouseUsed = this.state.mouseUsed;
     var keyboardUsed = false;
     var newSelectedRows = [];
     
-    keyboardUsed = _.includes([keys.PAGE_UP, keys.PAGE_DOWN, keys.UP, keys.DOWN, keys.HOME, keys.END], event.which);
-    
+    keyboardUsed = _.includes([Keys.PAGE_UP, Keys.PAGE_DOWN, Keys.UP, Keys.DOWN, Keys.HOME, Keys.END], event.which);
+   
     var scroll;
     var maxRow = this.props.rowsCount - 1;
     
     switch(event.which) {
-      case keys.PAGE_UP:
+      case 49:
+      case 50:
+      case 51:
+      case 52:
+      case 53:
+      case 54:
+        if (!event.ctrlKey) {
+          var bookmarkType = event.which - 48;
+          var bookmark = _.find(bookmarks, b => b.type === bookmarkType && b.row > currentRow );
+          if (!bookmark) {
+            bookmark = _.find(bookmarks, b => b.type === bookmarkType);
+          }
+          if (bookmark) {
+            currentRow = bookmark.row;
+            scroll = this._scrollHelper.scrollRowIntoView(currentRow);
+            keyboardUsed = true;          
+          }
+        }
+        break;
+      case Keys.C:
+      case Keys.c:
+        if (event.ctrlKey) {
+          if (this.props.onCommand) {
+            this.props.onCommand(1);
+          }
+        }
+        break;
+      case Keys.T:
+      case Keys.t:
+        if (this.props.onCommand) {
+          this.props.onCommand(2);
+        }
+        break;
+      case Keys.PAGE_UP:
         scroll = this._scrollHelper.scrollPages(-1);
         currentRow = scroll.index;
         break;
-      case keys.PAGE_DOWN:
+      case Keys.PAGE_DOWN:
         scroll = this._scrollHelper.scrollPages(1);
         currentRow = scroll.index;
         break;
-      case keys.UP:
+      case Keys.UP:
         currentRow--;
         if (currentRow < 0) {
           currentRow = 0;
@@ -891,18 +908,18 @@ var FixedDataTable = React.createClass({
         scroll = this._scrollHelper.scrollRowIntoView(currentRow);
         keyboardUsed = true;
         break;
-      case keys.DOWN:
+      case Keys.DOWN:
         currentRow++
         if (currentRow > maxRow) {
           currentRow = maxRow;
         }
         scroll = this._scrollHelper.scrollRowIntoView(currentRow);
         break;
-      case keys.HOME:
+      case Keys.HOME:
         currentRow = 0;
         scroll = this._scrollHelper.scrollRowIntoView(currentRow);
         break;
-      case keys.END:
+      case Keys.END:
         currentRow = maxRow;
         scroll = this._scrollHelper.scrollRowIntoView(currentRow);
         break;
@@ -921,7 +938,7 @@ var FixedDataTable = React.createClass({
           if (!_.includes(selectedRows, nextRow)) {
             newSelectedRows.push(thisRow);
           } else {
-            _.remove(selectedRows, thisRow);
+            _.remove(selectedRows, r => r == thisRow);
           }
           thisRow = nextRow;
         }
@@ -933,10 +950,44 @@ var FixedDataTable = React.createClass({
     }
     selectedRows = selectedRows.concat(newSelectedRows);
     
+    var bookmarksChanged = event.ctrlKey && 48 <= event.which && event.which <= 54;
+    if (bookmarksChanged) {
+      var bookmarkType = event.which - 48;
+      if (bookmarkType === 0) {
+        _.remove(bookmarks, b => _.findIndex(selectedRows, sr => b.row === sr) !== -1);
+      } else {
+        for (var i = 0; i < selectedRows.length; i++) {
+          var row = selectedRows[i];
+          var bookmark = _.find(bookmarks, function(b) {
+            return b.row === row;
+          });
+          if (bookmark) {
+            bookmark.type = bookmarkType;
+          } else {
+            bookmark = {
+              row : row,
+              type : bookmarkType
+            }
+            bookmarks.push(bookmark); 
+          }
+        }         
+      }
+      
+      bookmarks = _.sortBy(bookmarks, 'row');
+      if (this.props.onBookmarksChanged) {
+        this.props.onBookmarksChanged(selectedRows.map(r => ({ row: r, "type" : bookmarkType})));
+      }      
+      this.setState({
+        bookmarks: bookmarks
+      });
+    }
+    
+  
     if (keyboardUsed) {
-      if (this.props.onSelectionChanged && !_.equals(oldSelectedRows, selectedRows)) {
+      if (this.props.onSelectionChanged && !_.isEqual(oldSelectedRows, selectedRows)) {
           this.props.onSelectionChanged(currentRow, selectedRows);
       }
+      
       this.setState({
           firstRowIndex: scroll.index,
           firstRowOffset: scroll.offset,
@@ -987,6 +1038,7 @@ var FixedDataTable = React.createClass({
     }
     var currentRow = (oldState && oldState.currentRow) || 0;
     var selectedRows = (oldState && oldState.selectedRows) || [0];
+    var bookmarks = (props && props.bookmarks) || (oldState && oldState.bookmarks) || [];   
     var keyboardUsed = (oldState && oldState.keyboardUsed) || false;
     var mouseUsed = (oldState && oldState.mouseUsed) || false;
     if (this._positionToScrollTo !== undefined && props.rowsCount > 0) {
@@ -1137,7 +1189,6 @@ var FixedDataTable = React.createClass({
 
     this._scrollHelper.setViewportHeight(bodyHeight);
     
-
     // The order of elements in this object metters and bringing bodyHeight,
     // height or useGroupHeader to the top can break various features
     var newState = {
@@ -1164,6 +1215,7 @@ var FixedDataTable = React.createClass({
       selectedRows,
       keyboardUsed,
       mouseUsed,
+      bookmarks,
       // These properties may overwrite properties defined in
       // columnInfo and props
       onRowClick: this._onRowClick,
@@ -1402,7 +1454,7 @@ var HorizontalScrollbar = React.createClass({
         className={joinClasses(
           cx('fixedDataTableLayout/horizontalScrollbar'),
           cx('public/fixedDataTable/horizontalScrollbar'),
-        )}
+        )} 
         style={outerContainerStyle}>
         <div style={innerContainerStyle}>
           <Scrollbar

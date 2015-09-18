@@ -514,11 +514,46 @@ body[dir="rtl"] .fixedDataTableColumnResizerLineLayout_main {
 }
 
 .public_fixedDataTableRow_selected {
-  background-color: deepskyblue;
+  background-color: skyblue;
+}
+
+.public_fixedDataTableRow_bookmark1 {
+  font-weight: bold;
+  color: red;
+}
+
+.public_fixedDataTableRow_bookmark2 {
+  font-weight: bold;
+  color: blue;
+}
+
+.public_fixedDataTableRow_bookmark3 {
+  font-weight: bold;
+  color: gold;
+}
+
+.public_fixedDataTableRow_bookmark4 {
+  font-weight: bold;
+  color: green;
+}
+
+.public_fixedDataTableRow_bookmark5 {
+  font-weight: bold;
+  color: orange;
+}
+
+.public_fixedDataTableRow_bookmark6 {
+  font-weight: bold;
+  color: purple;
 }
 
 .public_fixedDataTableRow_current {
   border-style: dotted;
   border-width: 2px;
   border-color: black;
+}
+
+.public_fixedDataTableRow_highlighted,
+.public_fixedDataTableRow_selected .public_fixedDataTableCell_main {
+  background-color: skyblue;
 }

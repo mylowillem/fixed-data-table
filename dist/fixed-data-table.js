@@ -11,14 +11,14 @@
 
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("react"));
+		module.exports = factory(require("react"), require("lodash"));
 	else if(typeof define === 'function' && define.amd)
-		define(["react"], factory);
+		define(["react", "lodash"], factory);
 	else if(typeof exports === 'object')
-		exports["FixedDataTable"] = factory(require("react"));
+		exports["FixedDataTable"] = factory(require("react"), require("lodash"));
 	else
-		root["FixedDataTable"] = factory(root["React"]);
-})(this, function(__WEBPACK_EXTERNAL_MODULE_30__) {
+		root["FixedDataTable"] = factory(root["React"], root["Lodash"]);
+})(this, function(__WEBPACK_EXTERNAL_MODULE_30__, __WEBPACK_EXTERNAL_MODULE_69__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -176,8 +176,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 
 	var FixedDataTable = __webpack_require__(26);
-	var FixedDataTableColumn = __webpack_require__(75);
-	var FixedDataTableColumnGroup = __webpack_require__(76);
+	var FixedDataTableColumn = __webpack_require__(76);
+	var FixedDataTableColumnGroup = __webpack_require__(77);
 
 	var FixedDataTableRoot = {
 	  Column: FixedDataTableColumn,
@@ -217,18 +217,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	var ReactWheelHandler = __webpack_require__(34);
 	var Scrollbar = __webpack_require__(42);
 	var FixedDataTableBufferedRows = __webpack_require__(54);
-	var FixedDataTableColumnResizeHandle = __webpack_require__(69);
+	var FixedDataTableColumnResizeHandle = __webpack_require__(70);
 	var FixedDataTableRow = __webpack_require__(59);
-	var FixedDataTableScrollHelper = __webpack_require__(70);
-	var FixedDataTableWidthHelper = __webpack_require__(72);
-	var keys = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"keys\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+	var FixedDataTableScrollHelper = __webpack_require__(71);
+	var FixedDataTableWidthHelper = __webpack_require__(73);
+	var Keys = __webpack_require__(46);
+	var _ = __webpack_require__(69);
 
 	var cx = __webpack_require__(48);
-	var debounceCore = __webpack_require__(73);
+	var debounceCore = __webpack_require__(74);
 	var emptyFunction = __webpack_require__(35);
 	var invariant = __webpack_require__(53);
 	var joinClasses = __webpack_require__(68);
-	var shallowEqual = __webpack_require__(74);
+	var shallowEqual = __webpack_require__(75);
 	var translateDOMPositionXY = __webpack_require__(49);
 
 	var PropTypes = React.PropTypes;
@@ -289,10 +290,26 @@ return /******/ (function(modules) { // webpackBootstrap
 	  displayName: 'FixedDataTable',
 
 	  propTypes: {
+
 	    /**
-	     * Key code to process such as 33 for page up
+	     * Keyboard command on the grid
 	     */
-	    keyDownEvent: PropTypes.object,
+	    onCommand: PropTypes.func,
+
+	    /**
+	     * List of bookmarked rows and types of bookmarks
+	     */
+	    bookmarks: PropTypes.array,
+
+	    /**
+	    * Event to fire when the selected rows changed
+	    */
+	    onBookmarksChanged: PropTypes.func,
+
+	    /**
+	     * Event to fire when the selected rows changed
+	     */
+	    onSelectionChanged: PropTypes.func,
 
 	    /**
 	     * Pixel width of table. If all columns do not fit,
@@ -511,17 +528,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	      this._rowToScrollTo = scrollToRow;
 	    }
 	    var scrollTop = this.props.scrollTop;
-	    if (scrollTop !== undefined && scrollTop !== null) {
+	    if (scrollTop !== undefined && scrollTop !== null && this.props.rowCount > 0) {
 	      this._positionToScrollTo = scrollTop;
 	    }
 	    var scrollToColumn = this.props.scrollToColumn;
 	    if (scrollToColumn !== undefined && scrollToColumn !== null) {
 	      this._columnToScrollTo = scrollToColumn;
 	    }
-	    var keyDownEvent = this.props.keyDownEvent;
-	    if (keyDownEvent !== undefined && keyDownEvent !== null) {
-	      this._keyDownEvent = keyDownEvent;
-	    }
+
 	    this._wheelHandler = new ReactWheelHandler(this._onWheel, this._shouldHandleWheelX, this._shouldHandleWheelY);
 	  },
 
@@ -586,10 +600,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var scrollToColumn = nextProps.scrollToColumn;
 	    if (scrollToColumn !== undefined && scrollToColumn !== null) {
 	      this._columnToScrollTo = scrollToColumn;
-	    }
-	    var keyDownEvent = nextProps.keyDownEvent;
-	    if (keyDownEvent !== undefined && keyDownEvent !== null) {
-	      this._keyDownEvent = keyDownEvent;
 	    }
 	    var newOverflowX = nextProps.overflowX;
 	    var newOverflowY = nextProps.overflowY;
@@ -745,7 +755,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return React.createElement(
 	      'div',
 	      {
-	        className: joinClasses(cx('fixedDataTableLayout/main'), cx('public/fixedDataTable/main')),
+	        tabIndex: 0,
+	        onKeyDown: this._onKeyDown,
+	        className: joinClasses(cx('fixedDataTableLayout/main'), cx('public/fixedDataTable/main')) + " notselectable",
 	        onWheel: this._wheelHandler.onWheel,
 	        style: { height: state.height, width: state.width } },
 	      React.createElement(
@@ -777,6 +789,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      height: state.bodyHeight,
 	      currentRow: state.currentRow,
 	      selectedRows: state.selectedRows,
+	      bookmarks: state.bookmarks,
 	      offsetTop: offsetTop,
 	      onRowClick: state.onRowClick,
 	      onRowDoubleClick: state.onRowDoubleClick,
@@ -887,75 +900,225 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    return columnInfo;
 	  },
+	  _onRowClick: function _onRowClick(event, index, data) {
 
-	  _onKeyDown: function _onKeyDown(event, oldState) {
-	    var prevCurrent = this._currentRow;
+	    var oldSelectedRows = this.state.selectedRows;
+	    var selectedRows = oldSelectedRows.slice(0, oldSelectedRows.length);
 
-	    var currentRow = oldState && oldState.currentRow || 0;
-	    var selectedRows = oldState && oldState.selectedRows || [];
+	    var prevCurrent = this.state.currentRow;
+	    var currentRow = index;
 	    var newSelectedRows = [];
+	    if (event.ctrlKey) {
+	      if (_.includes(currentRow)) {
+	        _.remove(selectedRows, currentRow);
+	      } else {
+	        newSelectedRows.push(index);
+	      }
+	    } else if (event.shiftKey) {
+	      var direction = prevCurrent > currentRow ? -1 : 1;
+	      var thisRow = prevCurrent;
+	      while (thisRow !== currentRow) {
+	        var nextRow = thisRow + 1 * direction;
+	        if (!_.includes(selectedRows, nextRow)) {
+	          newSelectedRows.push(thisRow);
+	        } else {
+	          _.remove(selectedRows, thisRow);
+	        }
+	        thisRow = nextRow;
+	      }
+	      newSelectedRows.push(currentRow);
+	      window.getSelection().empty();
+	    } else {
+	      selectedRows = [];
+	      newSelectedRows = [currentRow];
+	    }
+	    var selectedRows = selectedRows.concat(newSelectedRows);
+
+	    if (this.props.onSelectionChanged && !_.isEqual(oldSelectedRows, selectedRows)) {
+	      this.props.onSelectionChanged(currentRow, selectedRows);
+	    }
+
+	    if (this.props.onRowClick) {
+	      this.props.onRowClick(event, index, data);
+	    }
+
+	    this.setState({
+	      currentRow: currentRow,
+	      selectedRows: selectedRows,
+	      mouseUsed: true,
+	      keyboardUsed: false
+	    });
+	  },
+
+	  _onKeyDown: function _onKeyDown(event) {
+
+	    var currentRow = this.state.currentRow;
+	    var prevCurrent = currentRow;
+	    var oldSelectedRows = this.state.selectedRows;
+	    var bookmarks = this.state.bookmarks || [];
+
+	    var selectedRows = oldSelectedRows.slice(0, oldSelectedRows.length);
+	    var mouseUsed = this.state.mouseUsed;
+	    var keyboardUsed = false;
+	    var newSelectedRows = [];
+
+	    keyboardUsed = _.includes([Keys.PAGE_UP, Keys.PAGE_DOWN, Keys.UP, Keys.DOWN, Keys.HOME, Keys.END], event.which);
 
 	    var scroll;
 	    var maxRow = this.props.rowsCount - 1;
 
 	    switch (event.which) {
-	      case keys.PAGE_UP:
+	      case 49:
+	      case 50:
+	      case 51:
+	      case 52:
+	      case 53:
+	      case 54:
+	        if (!event.ctrlKey) {
+	          var bookmarkType = event.which - 48;
+	          var bookmark = _.find(bookmarks, function (b) {
+	            return b.type === bookmarkType && b.row > currentRow;
+	          });
+	          if (!bookmark) {
+	            bookmark = _.find(bookmarks, function (b) {
+	              return b.type === bookmarkType;
+	            });
+	          }
+	          if (bookmark) {
+	            currentRow = bookmark.row;
+	            scroll = this._scrollHelper.scrollRowIntoView(currentRow);
+	            keyboardUsed = true;
+	          }
+	        }
+	        break;
+	      case Keys.C:
+	      case Keys.c:
+	        if (event.ctrlKey) {
+	          if (this.props.onCommand) {
+	            this.props.onCommand(1);
+	          }
+	        }
+	        break;
+	      case Keys.T:
+	      case Keys.t:
+	        if (this.props.onCommand) {
+	          this.props.onCommand(2);
+	        }
+	        break;
+	      case Keys.PAGE_UP:
 	        scroll = this._scrollHelper.scrollPages(-1);
 	        currentRow = scroll.index;
 	        break;
-	      case keys.PAGE_DOWN:
+	      case Keys.PAGE_DOWN:
 	        scroll = this._scrollHelper.scrollPages(1);
 	        currentRow = scroll.index;
 	        break;
-	      case keys.UP:
+	      case Keys.UP:
 	        currentRow--;
 	        if (currentRow < 0) {
 	          currentRow = 0;
 	        }
 	        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
+	        keyboardUsed = true;
 	        break;
-	      case keys.DOWN:
+	      case Keys.DOWN:
 	        currentRow++;
 	        if (currentRow > maxRow) {
 	          currentRow = maxRow;
 	        }
 	        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
 	        break;
-	      case keys.HOME:
+	      case Keys.HOME:
 	        currentRow = 0;
 	        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
 	        break;
-	      case keys.END:
+	      case Keys.END:
 	        currentRow = maxRow;
 	        scroll = this._scrollHelper.scrollRowIntoView(currentRow);
 	        break;
 	    }
-	    if (event.shiftKey) {
-	      var start = prevCurrent;
-	      var finish = this._currentRow;
-	      if (start > finish) {
-	        var temp = start;
-	        start = finish;
-	        finish = temp;
+
+	    if (keyboardUsed) {
+	      if (mouseUsed) {
+	        selectedRows = [];
+	        mouseUsed = false;
 	      }
-	      var newSelectedRows = [];
-	      for (var i = start; i <= finish; i++) {
-	        var add = true;
-	        for (var j = 0; j < selectedRows; i++) {
-	          var selectedRowIndex = selectedRows[j];
-	          if (selectedRowIndex === i) {
-	            add = false;
-	            break;
+	      if (event.shiftKey) {
+	        var direction = prevCurrent > currentRow ? -1 : 1;
+	        var thisRow = prevCurrent;
+	        while (thisRow !== currentRow) {
+	          var nextRow = thisRow + 1 * direction;
+	          if (!_.includes(selectedRows, nextRow)) {
+	            newSelectedRows.push(thisRow);
+	          } else {
+	            _.remove(selectedRows, function (r) {
+	              return r == thisRow;
+	            });
 	          }
+	          thisRow = nextRow;
 	        }
-	        if (add) {
-	          newSelectedRows.push(i);
-	        }
+	        newSelectedRows.push(currentRow);
+	      } else {
+	        selectedRows = [];
+	        newSelectedRows = [currentRow];
 	      }
 	    }
-	    scroll.currentRow = currentRow;
-	    scroll.selectedRows = newSelectedRows;
-	    return scroll;
+	    selectedRows = selectedRows.concat(newSelectedRows);
+
+	    var bookmarksChanged = event.ctrlKey && 48 <= event.which && event.which <= 54;
+	    if (bookmarksChanged) {
+	      var bookmarkType = event.which - 48;
+	      if (bookmarkType === 0) {
+	        _.remove(bookmarks, function (b) {
+	          return _.findIndex(selectedRows, function (sr) {
+	            return b.row === sr;
+	          }) !== -1;
+	        });
+	      } else {
+	        for (var i = 0; i < selectedRows.length; i++) {
+	          var row = selectedRows[i];
+	          var bookmark = _.find(bookmarks, function (b) {
+	            return b.row === row;
+	          });
+	          if (bookmark) {
+	            bookmark.type = bookmarkType;
+	          } else {
+	            bookmark = {
+	              row: row,
+	              type: bookmarkType
+	            };
+	            bookmarks.push(bookmark);
+	          }
+	        }
+	      }
+
+	      bookmarks = _.sortBy(bookmarks, 'row');
+	      if (this.props.onBookmarksChanged) {
+	        this.props.onBookmarksChanged(selectedRows.map(function (r) {
+	          return { row: r, "type": bookmarkType };
+	        }));
+	      }
+	      this.setState({
+	        bookmarks: bookmarks
+	      });
+	    }
+
+	    if (keyboardUsed) {
+	      if (this.props.onSelectionChanged && !_.isEqual(oldSelectedRows, selectedRows)) {
+	        this.props.onSelectionChanged(currentRow, selectedRows);
+	      }
+
+	      this.setState({
+	        firstRowIndex: scroll.index,
+	        firstRowOffset: scroll.offset,
+	        scrollY: scroll.position,
+	        scrollContentHeight: scroll.contentHeight,
+	        mouseUsed: false,
+	        keyboardUsed: true,
+	        currentRow: currentRow,
+	        selectedRows: selectedRows
+	      });
+	    }
 	  },
 
 	  _calculateState: function _calculateState( /*object*/props, /*?object*/oldState) /*object*/{
@@ -974,7 +1137,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (children.length && children[0].type.__TableColumnGroup__) {
 	      useGroupHeader = true;
 	    }
-
 	    var firstRowIndex = oldState && oldState.firstRowIndex || 0;
 	    var firstRowOffset = oldState && oldState.firstRowOffset || 0;
 	    var scrollX, scrollY;
@@ -984,8 +1146,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	      scrollX = props.scrollLeft;
 	    }
 	    var currentRow = oldState && oldState.currentRow || 0;
-	    var selectedRows = oldState && oldState.selectedRows || [];
-	    if (this._positionToScrollTo !== undefined) {
+	    var selectedRows = oldState && oldState.selectedRows || [0];
+	    var bookmarks = props && props.bookmarks || oldState && oldState.bookmarks || [];
+	    var keyboardUsed = oldState && oldState.keyboardUsed || false;
+	    var mouseUsed = oldState && oldState.mouseUsed || false;
+	    if (this._positionToScrollTo !== undefined && props.rowsCount > 0) {
 	      scrollState = this._scrollHelper.scrollTo(this._positionToScrollTo);
 	      firstRowIndex = scrollState.index;
 	      firstRowOffset = scrollState.offset;
@@ -997,16 +1162,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      firstRowOffset = scrollState.offset;
 	      scrollY = scrollState.position;
 	      delete this._rowToScrollTo;
-	    } else if (this._keyDownEvent !== undefined) {
-	      var scrollState = this._onKeyDown(this._keyDownEvent, oldState);
-	      if (scrollState) {
-	        firstRowIndex = scrollState.index;
-	        firstRowOffset = scrollState.offset;
-	        scrollY = scrollState.position;
-	        currentRow = scrollState.currentRow;
-	        selectedRows = scrollState.selectedRows;
-	      }
-	      delete this._keyDownEvent;
 	    }
 
 	    var groupHeaderHeight = useGroupHeader ? props.groupHeaderHeight : 0;
@@ -1130,8 +1285,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	      scrollY: scrollY,
 	      currentRow: currentRow,
 	      selectedRows: selectedRows,
+	      keyboardUsed: keyboardUsed,
+	      mouseUsed: mouseUsed,
+	      bookmarks: bookmarks,
 	      // These properties may overwrite properties defined in
 	      // columnInfo and props
+	      onRowClick: this._onRowClick,
 	      bodyHeight: bodyHeight,
 	      height: height,
 	      groupHeaderHeight: groupHeaderHeight,
@@ -3447,7 +3606,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	  Z: 90,
 	  ZERO: 48,
 	  NUMPAD_0: 96,
-	  NUMPAD_9: 105
+	  NUMPAD_9: 105,
+	  C: 67,
+	  c: 99,
+	  T: 84,
+	  t: 116
 	};
 
 /***/ },
@@ -3833,6 +3996,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var emptyFunction = __webpack_require__(35);
 	var joinClasses = __webpack_require__(68);
 	var translateDOMPositionXY = __webpack_require__(49);
+	var _ = __webpack_require__(69);
 
 	var PropTypes = React.PropTypes;
 
@@ -3861,7 +4025,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    showLastRowBorder: PropTypes.bool,
 	    width: PropTypes.number.isRequired,
 	    currentRow: PropTypes.number.isRequired,
-	    selectedRows: PropTypes.array.isRequired
+	    selectedRows: PropTypes.array.isRequired,
+	    bookmarks: PropTypes.array.isRequired
 	  },
 
 	  getInitialState: function getInitialState() /*object*/{
@@ -3881,6 +4046,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  componentWillReceiveProps: function componentWillReceiveProps( /*object*/nextProps) {
 	    if (nextProps.rowsCount !== this.props.rowsCount || nextProps.defaultRowHeight !== this.props.defaultRowHeight || nextProps.height !== this.props.height) {
+
 	      this._rowBuffer = new FixedDataTableRowBuffer(nextProps.rowsCount, nextProps.defaultRowHeight, nextProps.height, this._getRowHeight);
 	    }
 	    this.setState({
@@ -3926,11 +4092,17 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	      var hasBottomBorder = rowIndex === props.rowsCount - 1 && props.showLastRowBorder;
 
+	      var bookmark = _.find(props.bookmarks, function (b) {
+	        return b.row === rowIndex;
+	      });
+	      var bookmarkType = bookmark ? bookmark.type : null;
+
 	      this._staticRowArray[i] = React.createElement(FixedDataTableRow, {
 	        key: i,
 	        index: rowIndex,
 	        current: rowIndex === props.currentRow,
 	        selected: props.selectedRows.indexOf(rowIndex) !== -1,
+	        bookmarkType: bookmarkType,
 	        data: rowGetter(rowIndex),
 	        width: props.width,
 	        height: currentRowHeight,
@@ -4631,6 +4803,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	      'public/fixedDataTableRow/selected': this.props.selected,
 	      'public/fixedDataTableRow/current': this.props.current
 	    });
+
+	    if (this.props.bookmarkType) {
+	      var bookmarkClass = 'public_fixedDataTableRow_bookmark' + this.props.bookmarkType;
+	      className = joinClasses(className, bookmarkClass);
+	    }
 
 	    var isHeaderOrFooterRow = this.props.index === -1;
 	    if (!this.props.data && !isHeaderOrFooterRow) {
@@ -5866,6 +6043,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 69 */
+/***/ function(module, exports) {
+
+	module.exports = __WEBPACK_EXTERNAL_MODULE_69__;
+
+/***/ },
+/* 70 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -6030,7 +6213,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = FixedDataTableColumnResizeHandle;
 
 /***/ },
-/* 70 */
+/* 71 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -6051,7 +6234,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-	var PrefixIntervalTree = __webpack_require__(71);
+	var PrefixIntervalTree = __webpack_require__(72);
 	var clamp = __webpack_require__(58);
 
 	var BUFFER_ROWS = 5;
@@ -6342,7 +6525,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = FixedDataTableScrollHelper;
 
 /***/ },
-/* 71 */
+/* 72 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -6606,7 +6789,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 72 */
+/* 73 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -6744,7 +6927,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = FixedDataTableWidthHelper;
 
 /***/ },
-/* 73 */
+/* 74 */
 /***/ function(module, exports) {
 
 	/**
@@ -6816,7 +6999,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = debounce;
 
 /***/ },
-/* 74 */
+/* 75 */
 /***/ function(module, exports) {
 
 	/**
@@ -6869,7 +7052,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = shallowEqual;
 
 /***/ },
-/* 75 */
+/* 76 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -7063,7 +7246,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = FixedDataTableColumn;
 
 /***/ },
-/* 76 */
+/* 77 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
