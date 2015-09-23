@@ -6337,7 +6337,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    key: 'scrollPages',
 	    value: function scrollPages(pages) {
 	      var distance = pages * this._viewportHeight;
-	      return this.scrollBy(distance);
+	      return this.scrollTo(this._position + distance);
 	    }
 	  }, {
 	    key: 'getRowPosition',

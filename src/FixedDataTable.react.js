@@ -894,7 +894,7 @@ var FixedDataTable = React.createClass({
         break;
       case Keys.PAGE_UP:
         scroll = this._scrollHelper.scrollPages(-1);
-        currentRow = scroll.index;
+        currentRow = scroll.index;          
         break;
       case Keys.PAGE_DOWN:
         scroll = this._scrollHelper.scrollPages(1);

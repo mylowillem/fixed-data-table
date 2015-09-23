@@ -548,9 +548,9 @@ body[dir="rtl"] .fixedDataTableColumnResizerLineLayout_main {
 }
 
 .public_fixedDataTableRow_current {
-  border-style: dotted;
-  border-width: 2px;
-  border-color: black;
+  background-color: blue;
+  color: white;
+  font-weight: bold;
 }
 
 .public_fixedDataTableRow_highlighted,
