@@ -622,10 +622,15 @@ var FixedDataTable = React.createClass({
         />;
     }
 
+    var onKeyDownThrottled = _.throttle(this._onKeyDown, 150);
+
     return (
       <div
         tabIndex = {0}
-        onKeyDown={this._onKeyDown}
+        onKeyDown={(event) => {
+          event.persist();
+          onKeyDownThrottled(event);
+          }}
         className={joinClasses(
           cx('fixedDataTableLayout/main'),
           cx('public/fixedDataTable/main'),
@@ -849,6 +854,8 @@ var FixedDataTable = React.createClass({
      
   _onKeyDown(event) {
     
+      
+    
     var currentRow = this.state.currentRow;
     var prevCurrent = currentRow;
     var oldSelectedRows = this.state.selectedRows;
@@ -1005,7 +1012,6 @@ var FixedDataTable = React.createClass({
           selectedRows: selectedRows
       });       
     }
-
     
 
   },

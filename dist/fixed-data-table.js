@@ -758,11 +758,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	      });
 	    }
 
+	    var onKeyDownThrottled = _.throttle(this._onKeyDown, 150);
+
 	    return React.createElement(
 	      'div',
 	      {
 	        tabIndex: 0,
-	        onKeyDown: this._onKeyDown,
+	        onKeyDown: function (event) {
+	          event.persist();
+	          onKeyDownThrottled(event);
+	        },
 	        className: joinClasses(cx('fixedDataTableLayout/main'), cx('public/fixedDataTable/main')) + " notselectable",
 	        onWheel: this._wheelHandler.onWheel,
 	        style: { height: state.height, width: state.width } },
