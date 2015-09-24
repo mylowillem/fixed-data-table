@@ -504,12 +504,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return {
 	      footerHeight: 0,
 	      groupHeaderHeight: 0,
-	      headerHeight: 0,
-	      scrollLeft: 0,
-	      scrollTop: 0
+	      headerHeight: 0
 	    };
 	  },
 
+	  // scrollLeft: 0,
+	  // scrollTop: 0,
 	  getInitialState: function getInitialState() /*object*/{
 	    var props = this.props;
 	    var viewportHeight = (props.height === undefined ? props.maxHeight : props.height) - (props.headerHeight || 0) - (props.footerHeight || 0) - (props.groupHeaderHeight || 0);
@@ -527,11 +527,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (scrollToRow !== undefined && scrollToRow !== null) {
 	      this._rowToScrollTo = scrollToRow;
 	    }
+
 	    var scrollTop = this.props.scrollTop;
 	    if (scrollTop !== undefined && scrollTop !== null && this.props.rowCount > 0) {
 	      this._positionToScrollTo = scrollTop;
 	    }
-	    var scrollToColumn = this.props.scrollToColumn;
+
+	    this._positionToScrollTo = this._positionToScrollTo || 0;
+
+	    var scrollToColumn = this.props.scrollToColumn || 0;
 	    if (scrollToColumn !== undefined && scrollToColumn !== null) {
 	      this._columnToScrollTo = scrollToColumn;
 	    }
@@ -597,6 +601,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (scrollTop !== undefined && scrollTop !== null) {
 	      this._positionToScrollTo = scrollTop;
 	    }
+	    this._positionToScrollTo = this._positionToScrollTo || 0;
+
 	    var scrollToColumn = nextProps.scrollToColumn;
 	    if (scrollToColumn !== undefined && scrollToColumn !== null) {
 	      this._columnToScrollTo = scrollToColumn;
@@ -1150,19 +1156,32 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var bookmarks = props && props.bookmarks || oldState && oldState.bookmarks || [];
 	    var keyboardUsed = oldState && oldState.keyboardUsed || false;
 	    var mouseUsed = oldState && oldState.mouseUsed || false;
-	    if (this._positionToScrollTo !== undefined && props.rowsCount > 0) {
-	      scrollState = this._scrollHelper.scrollTo(this._positionToScrollTo);
-	      firstRowIndex = scrollState.index;
-	      firstRowOffset = scrollState.offset;
-	      scrollY = scrollState.position;
-	      delete this._positionToScrollTo;
-	    } else if (this._rowToScrollTo !== undefined) {
-	      scrollState = this._scrollHelper.scrollRowIntoView(this._rowToScrollTo);
-	      firstRowIndex = scrollState.index;
-	      firstRowOffset = scrollState.offset;
-	      scrollY = scrollState.position;
-	      delete this._rowToScrollTo;
+
+	    if (firstRowIndex > props.RowCount) {
+	      firstRowIndex = 0;
 	    }
+
+	    scrollState = this._scrollHelper.scrollRowIntoView(firstRowIndex);
+	    firstRowIndex = scrollState.index;
+	    firstRowOffset = scrollState.offset;
+	    scrollY = scrollState.position;
+
+	    // if (this._positionToScrollTo !== undefined && props.rowsCount > 0) {
+	    //   scrollState = this._scrollHelper.scrollTo(this._positionToScrollTo);
+	    //   firstRowIndex = scrollState.index;
+	    //   firstRowOffset = scrollState.offset;
+	    //   scrollY = scrollState.position;
+	    //   delete this._positionToScrollTo;
+	    // }
+	    //
+	    // if (this._rowToScrollTo !== undefined) {
+	    //   scrollState =
+	    //     this._scrollHelper.scrollRowIntoView(this._rowToScrollTo);
+	    //   firstRowIndex = scrollState.index;
+	    //   firstRowOffset = scrollState.offset;
+	    //   scrollY = scrollState.position;
+	    //   delete this._rowToScrollTo;
+	    // }
 
 	    var groupHeaderHeight = useGroupHeader ? props.groupHeaderHeight : 0;
 
