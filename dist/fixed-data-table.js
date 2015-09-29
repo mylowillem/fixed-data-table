@@ -292,6 +292,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	  propTypes: {
 
 	    /**
+	     * Delay between keyboard strokes
+	     */
+	    throttle: PropTypes.number,
+
+	    /**
 	     * Keyboard command on the grid
 	     */
 	    onCommand: PropTypes.func,
@@ -758,7 +763,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      });
 	    }
 
-	    var onKeyDownThrottled = _.throttle(this._onKeyDown, 150);
+	    var onKeyDownThrottled = _.throttle(this._onKeyDown, this.props.throttle || 100);
 
 	    return React.createElement(
 	      'div',

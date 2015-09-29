@@ -90,6 +90,12 @@ var BORDER_HEIGHT = 1;
 var FixedDataTable = React.createClass({
 
   propTypes: {
+
+    /**
+     * Delay between keyboard strokes
+     */
+    throttle: PropTypes.number,
+
     
     /**
      * Keyboard command on the grid
@@ -622,7 +628,7 @@ var FixedDataTable = React.createClass({
         />;
     }
 
-    var onKeyDownThrottled = _.throttle(this._onKeyDown, 150);
+    var onKeyDownThrottled = _.throttle(this._onKeyDown, this.props.throttle || 100);
 
     return (
       <div
