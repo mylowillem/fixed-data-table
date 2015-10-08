@@ -950,6 +950,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	    var selectedRows = selectedRows.concat(newSelectedRows);
 
+	    this.setState({
+	      currentRow: currentRow,
+	      selectedRows: selectedRows,
+	      mouseUsed: true,
+	      keyboardUsed: false
+	    });
+
 	    if (this.props.onSelectionChanged && !_.isEqual(oldSelectedRows, selectedRows)) {
 	      this.props.onSelectionChanged(currentRow, selectedRows);
 	    }
@@ -957,13 +964,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (this.props.onRowClick) {
 	      this.props.onRowClick(event, index, data);
 	    }
-
-	    this.setState({
-	      currentRow: currentRow,
-	      selectedRows: selectedRows,
-	      mouseUsed: true,
-	      keyboardUsed: false
-	    });
 	  },
 
 	  _onKeyDown: function _onKeyDown(event) {
