@@ -91,6 +91,13 @@ var FixedDataTable = React.createClass({
 
   propTypes: {
 
+
+    /**
+     * Sets the current row
+     */
+    currentRow: PropTypes.number,
+
+
     /**
      * Delay between keyboard strokes
      */
@@ -836,15 +843,7 @@ var FixedDataTable = React.createClass({
       newSelectedRows = [currentRow];
     }
     var selectedRows = selectedRows.concat(newSelectedRows)
-    
-    if (this.props.onSelectionChanged && !_.isEqual(oldSelectedRows, selectedRows)) {
-      this.props.onSelectionChanged(currentRow, selectedRows);
-    }
-        
-    if (this.props.onRowClick) {
-      this.props.onRowClick(event, index, data);
-    }    
-    
+
     
     this.setState({ 
       currentRow: currentRow, 
@@ -853,7 +852,14 @@ var FixedDataTable = React.createClass({
       keyboardUsed: false
     });
     
+    if (this.props.onSelectionChanged && !_.isEqual(oldSelectedRows, selectedRows)) {
+      this.props.onSelectionChanged(currentRow, selectedRows);
+    }
 
+
+    if (this.props.onRowClick) {
+      this.props.onRowClick(event, index, data);
+    }    
     
     
   },
@@ -1046,7 +1052,7 @@ var FixedDataTable = React.createClass({
     if (children.length && children[0].type.__TableColumnGroup__) {
       useGroupHeader = true;
     }
-    var firstRowIndex = (oldState && oldState.firstRowIndex) || 0;
+    var firstRowIndex = (props && props.currentRow) || (oldState && oldState.firstRowIndex) || 0;
     var firstRowOffset = (oldState && oldState.firstRowOffset) || 0;
     var scrollX, scrollY;
     if (oldState && props.overflowX !== 'hidden') {
@@ -1054,8 +1060,8 @@ var FixedDataTable = React.createClass({
     } else {
       scrollX = props.scrollLeft;
     }
-    var currentRow = (oldState && oldState.currentRow) || 0;
-    var selectedRows = (oldState && oldState.selectedRows) || [0];
+    var currentRow = (props && props.currentRow) || (oldState && oldState.currentRow) || 0;
+    var selectedRows = (props && props.selectedRows) || (oldState && oldState.selectedRows) || [0];
     var bookmarks = (props && props.bookmarks) || (oldState && oldState.bookmarks) || [];   
     var keyboardUsed = (oldState && oldState.keyboardUsed) || false;
     var mouseUsed = (oldState && oldState.mouseUsed) || false;
@@ -1064,8 +1070,13 @@ var FixedDataTable = React.createClass({
       firstRowIndex = 0;
     }
 
-    scrollState =
-      this._scrollHelper.scrollRowIntoView(firstRowIndex);
+
+    var retries = 10;
+    scrollState = this._scrollHelper.scrollRowIntoView(firstRowIndex);
+    while (scrollState.index < firstRowIndex && retries > 0) {
+      retries--;
+      scrollState = this._scrollHelper.scrollRowIntoView(firstRowIndex);
+    }
     firstRowIndex = scrollState.index;
     firstRowOffset = scrollState.offset;
     scrollY = scrollState.position;
@@ -1087,6 +1098,12 @@ var FixedDataTable = React.createClass({
     //   scrollY = scrollState.position;
     //   delete this._rowToScrollTo;
     // } 
+    
+    // scrollState = this._scrollHelper.scrollRowIntoView(currentRow);
+    // firstRowIndex = scrollState.index;
+    // firstRowOffset = scrollState.offset;
+    // scrollY = scrollState.position;
+    
 
     var groupHeaderHeight = useGroupHeader ? props.groupHeaderHeight : 0;
 

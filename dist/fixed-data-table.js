@@ -292,6 +292,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	  propTypes: {
 
 	    /**
+	     * Sets the current row
+	     */
+	    currentRow: PropTypes.number,
+
+	    /**
 	     * Delay between keyboard strokes
 	     */
 	    throttle: PropTypes.number,
@@ -1153,7 +1158,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    if (children.length && children[0].type.__TableColumnGroup__) {
 	      useGroupHeader = true;
 	    }
-	    var firstRowIndex = oldState && oldState.firstRowIndex || 0;
+	    var firstRowIndex = props && props.currentRow || oldState && oldState.firstRowIndex || 0;
 	    var firstRowOffset = oldState && oldState.firstRowOffset || 0;
 	    var scrollX, scrollY;
 	    if (oldState && props.overflowX !== 'hidden') {
@@ -1161,8 +1166,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    } else {
 	      scrollX = props.scrollLeft;
 	    }
-	    var currentRow = oldState && oldState.currentRow || 0;
-	    var selectedRows = oldState && oldState.selectedRows || [0];
+	    var currentRow = props && props.currentRow || oldState && oldState.currentRow || 0;
+	    var selectedRows = props && props.selectedRows || oldState && oldState.selectedRows || [0];
 	    var bookmarks = props && props.bookmarks || oldState && oldState.bookmarks || [];
 	    var keyboardUsed = oldState && oldState.keyboardUsed || false;
 	    var mouseUsed = oldState && oldState.mouseUsed || false;
@@ -1171,7 +1176,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	      firstRowIndex = 0;
 	    }
 
+	    var retries = 10;
 	    scrollState = this._scrollHelper.scrollRowIntoView(firstRowIndex);
+	    while (scrollState.index < firstRowIndex && retries > 0) {
+	      retries--;
+	      scrollState = this._scrollHelper.scrollRowIntoView(firstRowIndex);
+	    }
 	    firstRowIndex = scrollState.index;
 	    firstRowOffset = scrollState.offset;
 	    scrollY = scrollState.position;
@@ -1192,6 +1202,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	    //   scrollY = scrollState.position;
 	    //   delete this._rowToScrollTo;
 	    // }
+
+	    // scrollState = this._scrollHelper.scrollRowIntoView(currentRow);
+	    // firstRowIndex = scrollState.index;
+	    // firstRowOffset = scrollState.offset;
+	    // scrollY = scrollState.position;
 
 	    var groupHeaderHeight = useGroupHeader ? props.groupHeaderHeight : 0;
 
